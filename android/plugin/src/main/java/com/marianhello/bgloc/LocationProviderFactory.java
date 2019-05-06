@@ -13,6 +13,7 @@ import android.content.Context;
 import com.marianhello.bgloc.data.DAOFactory;
 import com.marianhello.bgloc.LocationProvider;
 import com.tenforwardconsulting.bgloc.DistanceFilterLocationProvider;
+import com.thijsd.bgloc.DistanceTimeFilterLocationProvider;
 import com.marianhello.bgloc.ActivityRecognitionLocationProvider;
 import java.lang.IllegalArgumentException;
 
@@ -30,9 +31,12 @@ public class LocationProviderFactory {
     public LocationProvider getInstance (Integer locationProvider) {
         LocationProvider provider;
         switch (locationProvider) {
-            case Config.ANDROID_DISTANCE_FILTER_PROVIDER:
-                provider = new DistanceFilterLocationProvider(context);
-                break;
+        case Config.ANDROID_DISTANCE_FILTER_PROVIDER:
+            provider = new DistanceFilterLocationProvider(context);
+            break;
+        case Config.ANDROID_DISTANCE_TIMED_FILTER_PROVIDER:
+            provider = new DistanceTimeFilterLocationProvider(context);
+            break;
             case Config.ANDROID_ACTIVITY_PROVIDER:
                 provider = new ActivityRecognitionLocationProvider(context);
                 break;
