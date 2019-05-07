@@ -98,7 +98,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         registerReceiver(stationaryAlarmReceiver, new IntentFilter(STATIONARY_ALARM_ACTION));
         
         //Force update PI
-        forceUpdateGps = PendingIntent.getBroadcast(locationService, 0, new Intent(FORCE_GPS_ALARM_ACTION), 0);
+        forceUpdateGps = PendingIntent.getBroadcast(locationService, 0, new Intent(FORCE_GPS_ALARM_ACTION, PendingIntent.FLAG_CANCEL_CURRENT);
         registerReceiver(forceUpdateGpsReceiver, new IntentFilter(FORCE_GPS_ALARM_ACTION));
 
         // Stationary region PI
@@ -464,12 +464,16 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         public void onReceive(Context context, Intent intent)
         {
             alarmManager.cancel(forceUpdateGps);
-            locationManager.removeUpdates(this);
-
-            criteria.setAccuracy(Criteria.ACCURACY_FINE);
-            criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
-            criteria.setPowerRequirement(Criteria.POWER_HIGH);
-            locationManager.requestSingleUpdate(criteria, this);
+            try {
+	            locationManager.removeUpdates(this);
+	
+	            criteria.setAccuracy(Criteria.ACCURACY_FINE);
+	            criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+	            criteria.setPowerRequirement(Criteria.POWER_HIGH);
+	            locationManager.requestSingleUpdate(criteria, this);
+	        } catch (SecurityException e) {
+	        	log.error("Security exception: {}", e.getMessage());
+	        }
         }
     };
 
@@ -482,20 +486,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
          @Override
          public void onReceive(Context context, Intent intent)
          {
-             log.info("Stationary location monitor fired");
-             if (config.isDebugging()) {
-                 startTone(Tone.DIALTONE);
-             }
-
-             criteria.setAccuracy(Criteria.ACCURACY_FINE);
-             criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
-             criteria.setPowerRequirement(Criteria.POWER_HIGH);
-
-             try {
-                 locationManager.requestSingleUpdate(criteria, singleUpdatePI);
-             } catch (SecurityException e) {
-                log.error("Security exception: {}", e.getMessage());
-             }
+        	 requestSingleUpdate();
          }
      };
 
@@ -524,6 +515,23 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
             }
         }
     };
+    
+    private void requestSingleUpdate() {
+        log.info("Stationary location monitor fired");
+        if (config.isDebugging()) {
+            startTone(Tone.DIALTONE);
+        }
+
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+        criteria.setPowerRequirement(Criteria.POWER_HIGH);
+
+        try {
+            locationManager.requestSingleUpdate(criteria, singleUpdatePI);
+        } catch (SecurityException e) {
+           log.error("Security exception: {}", e.getMessage());
+        }
+    }
 
     public void onProviderDisabled(String provider) {
         // TODO Auto-generated method stub
