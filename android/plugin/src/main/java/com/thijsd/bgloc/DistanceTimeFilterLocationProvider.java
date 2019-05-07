@@ -43,6 +43,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
 
     private static final String STATIONARY_REGION_ACTION        = P_NAME + ".STATIONARY_REGION_ACTION";
     private static final String STATIONARY_ALARM_ACTION         = P_NAME + ".STATIONARY_ALARM_ACTION";
+    private static final String FORCE_GPS_ALARM_ACTION			= P_NAME + ".FORCE_GPS_ALARM_ACTION";
     private static final String SINGLE_LOCATION_UPDATE_ACTION   = P_NAME + ".SINGLE_LOCATION_UPDATE_ACTION";
     private static final String STATIONARY_LOCATION_MONITOR_ACTION = P_NAME + ".STATIONARY_LOCATION_MONITOR_ACTION";
 
@@ -60,6 +61,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     private PowerManager.WakeLock wakeLock;
 
     private Location stationaryLocation;
+    private PendingIntent forceUpdateGps;
     private PendingIntent stationaryAlarmPI;
     private PendingIntent stationaryLocationPollingPI;
     private long stationaryLocationPollingInterval;
@@ -86,7 +88,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         super.onCreate();
 
         log = LoggerManager.getLogger(DistanceTimeFilterLocationProvider.class);
-        log.info("Creating DistanceFilterLocationProvider");
+        log.info("Creating DistanceTimeFilterLocationProvider");
 
         locationManager = (LocationManager) locationService.getSystemService(Context.LOCATION_SERVICE);
         alarmManager = (AlarmManager) locationService.getSystemService(Context.ALARM_SERVICE);
@@ -94,6 +96,10 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         // Stop-detection PI
         stationaryAlarmPI = PendingIntent.getBroadcast(locationService, 0, new Intent(STATIONARY_ALARM_ACTION), 0);
         registerReceiver(stationaryAlarmReceiver, new IntentFilter(STATIONARY_ALARM_ACTION));
+        
+        //Force update PI
+        forceUpdateGps = PendingIntent.getBroadcast(locationService, 0, new Intent(FORCE_GPS_ALARM_ACTION), 0);
+        registerReceiver(forceUpdateGpsReceiver, new IntentFilter(FORCE_GPS_ALARM_ACTION));
 
         // Stationary region PI
         stationaryRegionPI = PendingIntent.getBroadcast(locationService, 0, new Intent(STATIONARY_REGION_ACTION), PendingIntent.FLAG_CANCEL_CURRENT);
@@ -164,11 +170,16 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
                 List<String> matchingProviders = locationManager.getAllProviders();
                 for (String provider: matchingProviders) {
                     if (provider != LocationManager.PASSIVE_PROVIDER) {
-                        locationManager.requestLocationUpdates(provider, 0, 0, this);
+                    	//TODO: TEMP DISABLED
+                        //locationManager.requestLocationUpdates(provider, 0, 0, this);
+                    	alarmManager.cancel(forceUpdateGps);
+                    	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 2000, forceUpdateGps);
                     }
                 }
             } else {
+            	alarmManager.cancel(forceUpdateGps);
                 locationManager.requestLocationUpdates(locationManager.getBestProvider(criteria, true), config.getInterval(), scaledDistanceFilter, this);
+            	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 2000, forceUpdateGps);
             }
         } catch (SecurityException e) {
             log.error("Security exception: {}", e.getMessage());
@@ -327,7 +338,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         Double newDistanceFilter = (double) config.getDistanceFilter();
         if (speed < 100) {
             float roundedDistanceFilter = (round(speed / 5) * 5);
-            newDistanceFilter = (pow(roundedDistanceFilter, 2) / config.getDistanceFilterDevide()) + (double) config.getDistanceFilter();
+	    newDistanceFilter = (pow(roundedDistanceFilter, 2) / config.getDistanceFilterDevide()) + (double) config.getDistanceFilter();
         }
         return (newDistanceFilter.intValue() < 1000) ? newDistanceFilter.intValue() : 1000;
     }
@@ -446,6 +457,23 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     };
 
     /**
+    * Broadcast receiver which detects a user has stopped for a long enough time to be determined as STOPPED
+    */
+    private BroadcastReceiver forceUpdateGpsReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+            alarmManager.cancel(forceUpdateGps);
+            locationManager.removeUpdates(this);
+
+            criteria.setAccuracy(Criteria.ACCURACY_FINE);
+            criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+            criteria.setPowerRequirement(Criteria.POWER_HIGH);
+            locationManager.requestSingleUpdate(criteria, this);
+        }
+    };
+
+    /**
      * Broadcast receiver to handle stationaryMonitor alarm, fired at low frequency while monitoring stationary-region.
      * This is required because latest Android proximity-alerts don't seem to operate while suspended.  Regularly polling
      * the location seems to trigger the proximity-alerts while suspended.
@@ -515,7 +543,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     @Override
     public void onDestroy() {
         super.onDestroy();
-        log.info("Destroying DistanceFilterLocationProvider");
+        log.info("Destroying DistanceTimeFilterLocationProvider");
 
         try {
             locationManager.removeUpdates(this);
@@ -524,9 +552,11 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
             //noop
         }
         alarmManager.cancel(stationaryAlarmPI);
+        alarmManager.cancel(forceUpdateGps);
         alarmManager.cancel(stationaryLocationPollingPI);
 
         unregisterReceiver(stationaryAlarmReceiver);
+        unregisterReceiver(forceUpdateGpsReceiver);
         unregisterReceiver(singleUpdateReceiver);
         unregisterReceiver(stationaryRegionReceiver);
         unregisterReceiver(stationaryLocationMonitorReceiver);
