@@ -39,6 +39,9 @@ public class Config implements Parcelable
     private float stationaryRadius = 50;
     private Integer distanceFilter = 500;
     private Integer distanceFilterDevide = 2;
+    private Boolean distanceFilterTimeout = true;
+    private Integer distanceFilterTimeoutMin = 5000; //milliseconds
+    private float distanceFilterTimeoutMultiplier = 1.5f;
     private Integer desiredAccuracy = 100;
     private Boolean debug = false;
     private String notificationTitle = "Background tracking";
@@ -72,6 +75,9 @@ public class Config implements Parcelable
         out.writeFloat(getStationaryRadius());
         out.writeInt(getDistanceFilter());
         out.writeInt(getDistanceFilterDevide());
+        out.writeValue(getDistanceFilterTimeout());
+        out.writeInt(getDistanceFilterTimeoutMin());
+        out.writeFloat(getDistanceFilterTimeoutMultiplier());
         out.writeInt(getDesiredAccuracy());
         out.writeValue(isDebugging());
         out.writeString(getNotificationTitle());
@@ -111,6 +117,9 @@ public class Config implements Parcelable
         setStationaryRadius(in.readFloat());
         setDistanceFilter(in.readInt());
         setDistanceFilterDevide(in.readInt());
+        setDistanceFilterTimeout((Boolean) in.readValue(null));
+        setDistanceFilterTimeoutMin(in.readInt());
+        setDistanceFilterTimeoutMultiplier(in.readFloat());
         setDesiredAccuracy(in.readInt());
         setDebugging((Boolean) in.readValue(null));
         setNotificationTitle(in.readString());
@@ -158,12 +167,36 @@ public class Config implements Parcelable
         return distanceFilterDevide;
     }
 
+    public Boolean getDistanceFilterTimeout() {
+        return distanceFilterTimeout;
+    }
+
+    public Integer getDistanceFilterTimeoutMin() {
+        return distanceFilterTimeoutMin;
+    }
+
+    public float getDistanceFilterTimeoutMultiplier() {
+        return distanceFilterTimeoutMultiplier;
+    }
+
     public void setDistanceFilter(Integer distanceFilter) {
         this.distanceFilter = distanceFilter;
     }
 
     public void setDistanceFilterDevide(Integer distanceFilterDevide) {
         this.distanceFilterDevide = distanceFilterDevide;
+    }
+
+    public void setDistanceFilterTimeout(Boolean distanceFilterTimeout) {
+        this.distanceFilterTimeout = distanceFilterTimeout;
+    }
+
+    public void setDistanceFilterTimeoutMin(Integer distanceFilterTimeoutMin) {
+        this.distanceFilterTimeoutMin = distanceFilterTimeoutMin;
+    }
+
+    public void setDistanceFilterTimeoutMultiplier(float distanceFilterTimeoutMultiplier) {
+        this.distanceFilterTimeoutMultiplier = distanceFilterTimeoutMultiplier;
     }
 
     public Boolean isDebugging() {
@@ -347,6 +380,9 @@ public class Config implements Parcelable
         return new StringBuffer()
                 .append("Config[distanceFilter=").append(getDistanceFilter())
                 .append(" distanceFilterDevide=").append(getDistanceFilterDevide())
+                .append(" distanceFilterTimeout=").append(getDistanceFilterTimeout())
+                .append(" distanceFilterTimeoutMin=").append(getDistanceFilterTimeoutMin())
+                .append(" distanceFilterTimeoutMultiplier=").append(getDistanceFilterTimeoutMultiplier())
                 .append(" stationaryRadius=").append(getStationaryRadius())
                 .append(" desiredAccuracy=").append(getDesiredAccuracy())
                 .append(" interval=").append(getInterval())
@@ -391,6 +427,9 @@ public class Config implements Parcelable
         config.setStationaryRadius((float) jObject.optDouble("stationaryRadius", config.getStationaryRadius()));
         config.setDistanceFilter(jObject.optInt("distanceFilter", config.getDistanceFilter()));
         config.setDistanceFilterDevide(jObject.optInt("distanceFilterDevide", config.getDistanceFilterDevide()));
+        config.setDistanceFilterTimeout(jObject.optBoolean("distanceFilterTimeout", config.getDistanceFilterTimeout()));
+        config.setDistanceFilterTimeoutMin(jObject.optInt("distanceFilterTimeoutMin", config.getDistanceFilterTimeoutMin()));
+        config.setDistanceFilterTimeoutMultiplier((float) jObject.optDouble("distanceFilterTimeoutMultiplier", config.getDistanceFilterTimeoutMultiplier()));
         config.setDesiredAccuracy(jObject.optInt("desiredAccuracy", config.getDesiredAccuracy()));
         config.setDebugging(jObject.optBoolean("debug", config.isDebugging()));
         config.setNotificationTitle(jObject.optString("notificationTitle", config.getNotificationTitle()));
@@ -420,6 +459,9 @@ public class Config implements Parcelable
         json.put("stationaryRadius", getStationaryRadius());
         json.put("distanceFilter", getDistanceFilter());
         json.put("distanceFilterDevide", getDistanceFilterDevide());
+        json.put("distanceFilterTimeout", getDistanceFilterTimeout());
+        json.put("distanceFilterTimeoutMin", getDistanceFilterTimeoutMin());
+        json.put("distanceFilterTimeoutMultiplier", getDistanceFilterTimeoutMultiplier());
         json.put("desiredAccuracy", getDesiredAccuracy());
         json.put("debug", isDebugging());
         json.put("notificationTitle", getNotificationTitle());

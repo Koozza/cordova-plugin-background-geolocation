@@ -67,6 +67,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     private long stationaryLocationPollingInterval;
     private PendingIntent stationaryRegionPI;
     private PendingIntent singleUpdatePI;
+    private float lastKnownSpeed;
     private Integer scaledDistanceFilter;
 
     private String activity;
@@ -98,7 +99,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         registerReceiver(stationaryAlarmReceiver, new IntentFilter(STATIONARY_ALARM_ACTION));
         
         //Force update PI
-        forceUpdateGps = PendingIntent.getBroadcast(locationService, 0, new Intent(FORCE_GPS_ALARM_ACTION, PendingIntent.FLAG_CANCEL_CURRENT);
+        forceUpdateGps = PendingIntent.getBroadcast(locationService, 0, new Intent(FORCE_GPS_ALARM_ACTION), PendingIntent.FLAG_CANCEL_CURRENT);
         registerReceiver(forceUpdateGpsReceiver, new IntentFilter(FORCE_GPS_ALARM_ACTION));
 
         // Stationary region PI
@@ -127,7 +128,9 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
 
     public void startRecording() {
         log.info("Start recording");
+        
         scaledDistanceFilter = config.getDistanceFilter();
+        lastKnownSpeed = 0.00f;
         setPace(false);
     }
 
@@ -170,16 +173,21 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
                 List<String> matchingProviders = locationManager.getAllProviders();
                 for (String provider: matchingProviders) {
                     if (provider != LocationManager.PASSIVE_PROVIDER) {
-                    	//TODO: TEMP DISABLED
-                        //locationManager.requestLocationUpdates(provider, 0, 0, this);
-                    	alarmManager.cancel(forceUpdateGps);
-                    	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 2000, forceUpdateGps);
+                        locationManager.requestLocationUpdates(provider, 0, 0, this);
                     }
                 }
             } else {
             	alarmManager.cancel(forceUpdateGps);
                 locationManager.requestLocationUpdates(locationManager.getBestProvider(criteria, true), config.getInterval(), scaledDistanceFilter, this);
-            	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 2000, forceUpdateGps);
+                
+                if(config.getDistanceFilterTimeout() && lastKnownSpeed > 0) {
+                	long maxDuration = round(scaledDistanceFilter / lastKnownSpeed * config.getDistanceFilterTimeoutMultiplier()) * 1000;
+                	if(maxDuration < config.getDistanceFilterTimeoutMin()) {
+                		maxDuration = config.getDistanceFilterTimeoutMin();
+                	}
+                	Toast.makeText(locationService, "Set timer: " +maxDuration + "ms", Toast.LENGTH_LONG).show();
+                	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + maxDuration, forceUpdateGps);
+                }
             }
         } catch (SecurityException e) {
             log.error("Security exception: {}", e.getMessage());
@@ -261,6 +269,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     }
 
     public void onLocationChanged(Location location) {
+    	alarmManager.cancel(forceUpdateGps);
         log.debug("Location change: {} isMoving={}", location.toString(), isMoving);
 
         if (!isMoving && !isAcquiringStationaryLocation && stationaryLocation==null) {
@@ -296,6 +305,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
                 }
                 isAcquiringSpeed = false;
                 scaledDistanceFilter = calculateDistanceFilter(location.getSpeed());
+                lastKnownSpeed = location.getSpeed();
                 setPace(true);
             } else {
                 if (config.isDebugging()) {
@@ -316,6 +326,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
             if (newDistanceFilter != scaledDistanceFilter.intValue()) {
                 log.info("Updating distanceFilter: new={} old={}", newDistanceFilter, scaledDistanceFilter);
                 scaledDistanceFilter = newDistanceFilter;
+                lastKnownSpeed = location.getSpeed();
                 setPace(true);
             }
             if (location.distanceTo(lastLocation) < config.getDistanceFilter()) {
@@ -463,17 +474,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         @Override
         public void onReceive(Context context, Intent intent)
         {
-            alarmManager.cancel(forceUpdateGps);
-            try {
-	            locationManager.removeUpdates(this);
-	
-	            criteria.setAccuracy(Criteria.ACCURACY_FINE);
-	            criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
-	            criteria.setPowerRequirement(Criteria.POWER_HIGH);
-	            locationManager.requestSingleUpdate(criteria, this);
-	        } catch (SecurityException e) {
-	        	log.error("Security exception: {}", e.getMessage());
-	        }
+        	requestSingleUpdate();
         }
     };
 
@@ -486,7 +487,20 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
          @Override
          public void onReceive(Context context, Intent intent)
          {
-        	 requestSingleUpdate();
+             log.info("Stationary location monitor fired");
+             if (config.isDebugging()) {
+                 startTone(Tone.DIALTONE);
+             }
+
+             criteria.setAccuracy(Criteria.ACCURACY_FINE);
+             criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+             criteria.setPowerRequirement(Criteria.POWER_HIGH);
+
+             try {
+                 locationManager.requestSingleUpdate(criteria, singleUpdatePI);
+             } catch (SecurityException e) {
+                log.error("Security exception: {}", e.getMessage());
+             }
          }
      };
 
@@ -517,19 +531,18 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     };
     
     private void requestSingleUpdate() {
-        log.info("Stationary location monitor fired");
-        if (config.isDebugging()) {
-            startTone(Tone.DIALTONE);
-        }
-
-        criteria.setAccuracy(Criteria.ACCURACY_FINE);
-        criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
-        criteria.setPowerRequirement(Criteria.POWER_HIGH);
-
+        alarmManager.cancel(forceUpdateGps);
         try {
-            locationManager.requestSingleUpdate(criteria, singleUpdatePI);
+            locationManager.removeUpdates(this);
+            
+            Toast.makeText(locationService, "Request single Update", Toast.LENGTH_LONG).show();
+
+            criteria.setAccuracy(Criteria.ACCURACY_FINE);
+            criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+            criteria.setPowerRequirement(Criteria.POWER_HIGH);
+            locationManager.requestSingleUpdate(criteria, this, null);
         } catch (SecurityException e) {
-           log.error("Security exception: {}", e.getMessage());
+        	log.error("Security exception: {}", e.getMessage());
         }
     }
 
