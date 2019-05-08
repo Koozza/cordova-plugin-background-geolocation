@@ -45,6 +45,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     private static final String STATIONARY_ALARM_ACTION         = P_NAME + ".STATIONARY_ALARM_ACTION";
     private static final String FORCE_GPS_ALARM_ACTION			= P_NAME + ".FORCE_GPS_ALARM_ACTION";
     private static final String SINGLE_LOCATION_UPDATE_ACTION   = P_NAME + ".SINGLE_LOCATION_UPDATE_ACTION";
+    private static final String SINGLE_LOCATION_GPS_UPDATE_ACTION   = P_NAME + ".SINGLE_LOCATION_GPS_UPDATE_ACTION";
     private static final String STATIONARY_LOCATION_MONITOR_ACTION = P_NAME + ".STATIONARY_LOCATION_MONITOR_ACTION";
 
     private static final long STATIONARY_TIMEOUT                                = 5 * 1000 * 60;    // 5 minutes.
@@ -67,6 +68,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     private long stationaryLocationPollingInterval;
     private PendingIntent stationaryRegionPI;
     private PendingIntent singleUpdatePI;
+    private PendingIntent singleUpdateGpsPI;
     private float lastKnownSpeed;
     private Integer scaledDistanceFilter;
 
@@ -116,6 +118,10 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         // One-shot PI (TODO currently unused)
         singleUpdatePI = PendingIntent.getBroadcast(locationService, 0, new Intent(SINGLE_LOCATION_UPDATE_ACTION), PendingIntent.FLAG_CANCEL_CURRENT);
         registerReceiver(singleUpdateReceiver, new IntentFilter(SINGLE_LOCATION_UPDATE_ACTION));
+
+        // One-shot PI (TODO currently unused)
+        singleUpdateGpsPI = PendingIntent.getBroadcast(locationService, 0, new Intent(SINGLE_LOCATION_GPS_UPDATE_ACTION), PendingIntent.FLAG_CANCEL_CURRENT);
+        registerReceiver(singleUpdateGpsReceiver, new IntentFilter(SINGLE_LOCATION_GPS_UPDATE_ACTION));
 
         PowerManager pm = (PowerManager) locationService.getSystemService(Context.POWER_SERVICE);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
@@ -336,7 +342,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         	if(maxDuration < config.getDistanceFilterTimeoutMin()) {
         		maxDuration = config.getDistanceFilterTimeoutMin();
         	}
-        	Toast.makeText(locationService, "Set timer: " +maxDuration + "ms", Toast.LENGTH_LONG).show();
+        	Toast.makeText(locationService, "Set timer: " +maxDuration + "ms", Toast.LENGTH_SHORT).show();
         	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + maxDuration, forceUpdateGps);
         }
         
@@ -433,7 +439,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         float distance = abs(location.distanceTo(stationaryLocation) - stationaryLocation.getAccuracy() - location.getAccuracy());
 
         if (config.isDebugging()) {
-            Toast.makeText(locationService, "Stationary exit in " + (stationaryRadius-distance) + "m", Toast.LENGTH_LONG).show();
+            Toast.makeText(locationService, "Stationary exit in " + (stationaryRadius-distance) + "m", Toast.LENGTH_SHORT).show();
         }
 
         // TODO http://www.cse.buffalo.edu/~demirbas/publications/proximity.pdf
@@ -447,6 +453,21 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
             startPollingStationaryLocation(STATIONARY_LOCATION_POLLING_INTERVAL_LAZY);
         }
     }
+
+    /**
+    * Broadcast receiver for receiving a single-update from LocationManager.
+    */
+    private BroadcastReceiver singleUpdateGpsReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String key = LocationManager.KEY_LOCATION_CHANGED;
+            Location location = (Location)intent.getExtras().get(key);
+
+        	lastPost = System.currentTimeMillis();
+        	lastLocation = location;
+        	handleLocation(location);
+        }
+    };
 
     /**
     * Broadcast receiver for receiving a single-update from LocationManager.
@@ -542,14 +563,12 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     private void requestSingleUpdate() {
         alarmManager.cancel(forceUpdateGps);
         try {
-            locationManager.removeUpdates(this);
-            
-            Toast.makeText(locationService, "Request single Update", Toast.LENGTH_LONG).show();
+            Toast.makeText(locationService, "Request single Update", Toast.LENGTH_SHORT).show();
 
             criteria.setAccuracy(Criteria.ACCURACY_FINE);
             criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
             criteria.setPowerRequirement(Criteria.POWER_HIGH);
-            locationManager.requestSingleUpdate(criteria, this, null);
+            locationManager.requestSingleUpdate(criteria, singleUpdateGpsPI);
         } catch (SecurityException e) {
         	log.error("Security exception: {}", e.getMessage());
         }
@@ -588,6 +607,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         unregisterReceiver(stationaryAlarmReceiver);
         unregisterReceiver(forceUpdateGpsReceiver);
         unregisterReceiver(singleUpdateReceiver);
+        unregisterReceiver(singleUpdateGpsReceiver);
         unregisterReceiver(stationaryRegionReceiver);
         unregisterReceiver(stationaryLocationMonitorReceiver);
 
