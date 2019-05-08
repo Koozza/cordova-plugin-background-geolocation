@@ -73,6 +73,9 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     private String activity;
     private Criteria criteria;
 
+    private Boolean isRequestingSingle;
+    private long lastPost;
+    
     private LocationManager locationManager;
     private AlarmManager alarmManager;
     private NotificationManager notificationManager;
@@ -124,6 +127,9 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         criteria.setBearingRequired(false);
         criteria.setSpeedRequired(true);
         criteria.setCostAllowed(true);
+        
+        isRequestingSingle = false;
+        lastPost = 0;
     }
 
     public void startRecording() {
@@ -177,17 +183,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
                     }
                 }
             } else {
-            	alarmManager.cancel(forceUpdateGps);
-                locationManager.requestLocationUpdates(locationManager.getBestProvider(criteria, true), config.getInterval(), scaledDistanceFilter, this);
-                
-                if(config.getDistanceFilterTimeout() && lastKnownSpeed > 0) {
-                	long maxDuration = round(scaledDistanceFilter / lastKnownSpeed * config.getDistanceFilterTimeoutMultiplier()) * 1000;
-                	if(maxDuration < config.getDistanceFilterTimeoutMin()) {
-                		maxDuration = config.getDistanceFilterTimeoutMin();
-                	}
-                	Toast.makeText(locationService, "Set timer: " +maxDuration + "ms", Toast.LENGTH_LONG).show();
-                	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + maxDuration, forceUpdateGps);
-                }
+                locationManager.requestLocationUpdates(locationManager.getBestProvider(criteria, true), config.getInterval(), scaledDistanceFilter, this); 
             }
         } catch (SecurityException e) {
             log.error("Security exception: {}", e.getMessage());
@@ -269,7 +265,6 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     }
 
     public void onLocationChanged(Location location) {
-    	alarmManager.cancel(forceUpdateGps);
         log.debug("Location change: {} isMoving={}", location.toString(), isMoving);
 
         if (!isMoving && !isAcquiringStationaryLocation && stationaryLocation==null) {
@@ -278,7 +273,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         }
 
         if (config.isDebugging()) {
-            Toast.makeText(locationService, "mv:" + isMoving + ",acy:" + location.getAccuracy() + ",v:" + location.getSpeed() + ",df:" + scaledDistanceFilter, Toast.LENGTH_LONG).show();
+            //Toast.makeText(locationService, "mv:" + isMoving + ",acy:" + location.getAccuracy() + ",v:" + location.getSpeed() + ",df:" + scaledDistanceFilter, Toast.LENGTH_LONG).show();
         }
         if (isAcquiringStationaryLocation) {
             if (stationaryLocation == null || stationaryLocation.getAccuracy() > location.getAccuracy()) {
@@ -335,9 +330,23 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         } else if (stationaryLocation != null) {
             return;
         }
-        // Go ahead and cache, push to server
-        lastLocation = location;
-        handleLocation(location);
+    	alarmManager.cancel(forceUpdateGps);
+        if(config.getDistanceFilterTimeout() && lastKnownSpeed > 1.5 && !isRequestingSingle) {
+        	isRequestingSingle = true;
+        	long maxDuration = round(scaledDistanceFilter / lastKnownSpeed * config.getDistanceFilterTimeoutMultiplier()) * 1000;
+        	if(maxDuration < config.getDistanceFilterTimeoutMin()) {
+        		maxDuration = config.getDistanceFilterTimeoutMin();
+        	}
+        	Toast.makeText(locationService, "Set timer: " +maxDuration + "ms", Toast.LENGTH_LONG).show();
+        	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + maxDuration, forceUpdateGps);
+        }
+        
+        // Go ahead and cache, push to server if not within min interval time
+        if(lastPost < System.currentTimeMillis() - config.getFastestInterval()) {
+        	lastPost = System.currentTimeMillis();
+        	lastLocation = location;
+        	handleLocation(location);
+        }
     }
 
     public void resetStationaryAlarm() {
@@ -475,6 +484,7 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         public void onReceive(Context context, Intent intent)
         {
         	requestSingleUpdate();
+        	isRequestingSingle = false;
         }
     };
 
