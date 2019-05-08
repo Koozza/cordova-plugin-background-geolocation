@@ -332,7 +332,6 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
         }
     	alarmManager.cancel(forceUpdateGps);
         if(config.getDistanceFilterTimeout() && lastKnownSpeed > 1.5 && !isRequestingSingle) {
-        	isRequestingSingle = true;
         	long maxDuration = round(scaledDistanceFilter / lastKnownSpeed * config.getDistanceFilterTimeoutMultiplier()) * 1000;
         	if(maxDuration < config.getDistanceFilterTimeoutMin()) {
         		maxDuration = config.getDistanceFilterTimeoutMin();
