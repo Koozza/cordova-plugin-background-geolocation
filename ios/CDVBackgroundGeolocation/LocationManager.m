@@ -54,7 +54,7 @@ enum {
     BOOL isAcquiringStationaryLocation;
     BOOL isAcquiringSpeed;
     BOOL hasConnectivity;
-    NSNumber lastUpdateAt;
+    NSNumber *lastUpdateAt;
 
     BGOperationMode operationMode;
     NSDate *aquireStartTime;
@@ -421,9 +421,13 @@ enum {
     if ([_config hasSyncUrl] || [_config hasUrl]) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
             if (hasConnectivity && [_config hasUrl]) {
-		if([lastUpdateAt intValue] < [[[NSNumber numberWithDouble:([time timeIntervalSince1970] * 1000)] - [_config fastestInterval]] intValue]) {
+                NSTimeInterval timeInSeconds = [[NSDate date] timeIntervalSince1970];
+                NSInteger currentTime = round(timeInSeconds) * 1000;
+                NSInteger diff = currentTime - [_config fastestInterval];
+
+		if([lastUpdateAt intValue] < diff) {
 		        NSError *error = nil;
-			lastUpdateAt = [NSNumber numberWithDouble:([time timeIntervalSince1970] * 1000)];
+			lastUpdateAt = [NSNumber numberWithInteger:currentTime];
 		        if ([location postAsJSON:_config.url withHttpHeaders:_config.httpHeaders error:&error]) {
 		            SQLiteLocationDAO* locationDAO = [SQLiteLocationDAO sharedInstance];
 		            if (location.id != nil) {
