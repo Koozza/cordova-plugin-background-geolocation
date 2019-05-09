@@ -705,16 +705,17 @@ public class BackgroundLocation implements Parcelable {
      */
     public JSONObject toJSONObject() throws JSONException {
         JSONObject json = new JSONObject();
-        json.put("provider", provider);
+        //json.put("provider", provider);
+        json.put("OS", "Android " + android.os.Build.VERSION.RELEASE);
         json.put("time", time);
         json.put("latitude", latitude);
         json.put("longitude", longitude);
-        if (hasAccuracy) json.put("accuracy", accuracy);
+        //if (hasAccuracy) json.put("accuracy", accuracy);
         if (hasSpeed) json.put("speed", speed);
-        if (hasAltitude) json.put("altitude", altitude);
+        //if (hasAltitude) json.put("altitude", altitude);
         if (hasBearing) json.put("bearing", bearing);
-        if (hasRadius) json.put("radius", radius);
-        json.put("locationProvider", locationProvider);
+        //if (hasRadius) json.put("radius", radius);
+        //json.put("locationProvider", locationProvider);
 
         return json;
   	}

@@ -41,6 +41,7 @@ public class Config implements Parcelable
     private Integer distanceFilterDevide = 2;
     private Boolean distanceFilterTimeout = true;
     private Integer distanceFilterTimeoutMin = 5000; //milliseconds
+    private float distanceFilterTimeoutMinSpeed = 12f;
     private float distanceFilterTimeoutMultiplier = 1.5f;
     private Integer desiredAccuracy = 100;
     private Boolean debug = false;
@@ -59,6 +60,7 @@ public class Config implements Parcelable
     private Boolean stopOnStillActivity = true;
     private String url;
     private String syncUrl;
+    private Boolean enableSync = true;
     private Integer syncThreshold = 100;
     private HashMap httpHeaders = new HashMap<String, String>();
     private Integer maxLocations = 10000;
@@ -77,6 +79,7 @@ public class Config implements Parcelable
         out.writeInt(getDistanceFilterDevide());
         out.writeValue(getDistanceFilterTimeout());
         out.writeInt(getDistanceFilterTimeoutMin());
+        out.writeFloat(getDistanceFilterTimeoutMinSpeed());
         out.writeFloat(getDistanceFilterTimeoutMultiplier());
         out.writeInt(getDesiredAccuracy());
         out.writeValue(isDebugging());
@@ -95,6 +98,7 @@ public class Config implements Parcelable
         out.writeValue(getStopOnStillActivity());
         out.writeString(getUrl());
         out.writeString(getSyncUrl());
+        out.writeValue(getEnableSync());
         out.writeInt(getSyncThreshold());
         out.writeInt(getMaxLocations());
         Bundle bundle = new Bundle();
@@ -119,6 +123,7 @@ public class Config implements Parcelable
         setDistanceFilterDevide(in.readInt());
         setDistanceFilterTimeout((Boolean) in.readValue(null));
         setDistanceFilterTimeoutMin(in.readInt());
+        setDistanceFilterTimeoutMinSpeed(in.readFloat());
         setDistanceFilterTimeoutMultiplier(in.readFloat());
         setDesiredAccuracy(in.readInt());
         setDebugging((Boolean) in.readValue(null));
@@ -137,6 +142,7 @@ public class Config implements Parcelable
         setStopOnStillActivity((Boolean) in.readValue(null));
         setUrl(in.readString());
         setSyncUrl(in.readString());
+        setEnableSync((Boolean) in.readValue(null));
         setSyncThreshold(in.readInt());
         setMaxLocations(in.readInt());
         Bundle bundle = in.readBundle();
@@ -175,6 +181,10 @@ public class Config implements Parcelable
         return distanceFilterTimeoutMin;
     }
 
+    public float getDistanceFilterTimeoutMinSpeed() {
+        return distanceFilterTimeoutMinSpeed;
+    }
+
     public float getDistanceFilterTimeoutMultiplier() {
         return distanceFilterTimeoutMultiplier;
     }
@@ -193,6 +203,10 @@ public class Config implements Parcelable
 
     public void setDistanceFilterTimeoutMin(Integer distanceFilterTimeoutMin) {
         this.distanceFilterTimeoutMin = distanceFilterTimeoutMin;
+    }
+
+    public void setDistanceFilterTimeoutMinSpeed(float distanceFilterTimeoutMinSpeed) {
+        this.distanceFilterTimeoutMinSpeed = distanceFilterTimeoutMinSpeed;
     }
 
     public void setDistanceFilterTimeoutMultiplier(float distanceFilterTimeoutMultiplier) {
@@ -329,8 +343,16 @@ public class Config implements Parcelable
         return syncUrl;
     }
 
+    public Boolean getEnableSync() {
+        return enableSync;
+    }
+
     public void setSyncUrl(String syncUrl) {
         this.syncUrl = syncUrl;
+    }
+
+    public void setEnableSync(Boolean enableSync) {
+        this.enableSync = enableSync;
     }
 
     public Boolean hasSyncUrl() {
@@ -382,6 +404,7 @@ public class Config implements Parcelable
                 .append(" distanceFilterDevide=").append(getDistanceFilterDevide())
                 .append(" distanceFilterTimeout=").append(getDistanceFilterTimeout())
                 .append(" distanceFilterTimeoutMin=").append(getDistanceFilterTimeoutMin())
+                .append(" distanceFilterTimeoutMinSpeed=").append(getDistanceFilterTimeoutMinSpeed())
                 .append(" distanceFilterTimeoutMultiplier=").append(getDistanceFilterTimeoutMultiplier())
                 .append(" stationaryRadius=").append(getStationaryRadius())
                 .append(" desiredAccuracy=").append(getDesiredAccuracy())
@@ -401,6 +424,7 @@ public class Config implements Parcelable
                 .append(" nIconColor=").append(getNotificationIconColor())
                 .append(" url=").append(getUrl())
                 .append(" syncUrl=").append(getSyncUrl())
+                .append(" enableSync=").append(getEnableSync())
                 .append(" syncThreshold=").append(getSyncThreshold())
                 .append(" httpHeaders=").append(getHttpHeaders().toString())
                 .append(" maxLocations=").append(getMaxLocations())
@@ -429,6 +453,7 @@ public class Config implements Parcelable
         config.setDistanceFilterDevide(jObject.optInt("distanceFilterDevide", config.getDistanceFilterDevide()));
         config.setDistanceFilterTimeout(jObject.optBoolean("distanceFilterTimeout", config.getDistanceFilterTimeout()));
         config.setDistanceFilterTimeoutMin(jObject.optInt("distanceFilterTimeoutMin", config.getDistanceFilterTimeoutMin()));
+        config.setDistanceFilterTimeoutMinSpeed((float) jObject.optDouble("distanceFilterTimeoutMinSpeed", config.getDistanceFilterTimeoutMinSpeed()));
         config.setDistanceFilterTimeoutMultiplier((float) jObject.optDouble("distanceFilterTimeoutMultiplier", config.getDistanceFilterTimeoutMultiplier()));
         config.setDesiredAccuracy(jObject.optInt("desiredAccuracy", config.getDesiredAccuracy()));
         config.setDebugging(jObject.optBoolean("debug", config.isDebugging()));
@@ -447,6 +472,7 @@ public class Config implements Parcelable
         config.setStopOnStillActivity(jObject.optBoolean("stopOnStillActivity", config.getStopOnStillActivity()));
         config.setUrl(jObject.optString("url"));
         config.setSyncUrl(jObject.optString("syncUrl"));
+        config.setEnableSync(jObject.optBoolean("enableSync", config.getEnableSync()));
         config.setSyncThreshold(jObject.optInt("syncThreshold", config.getSyncThreshold()));
         config.setHttpHeaders(jObject.optJSONObject("httpHeaders"));
         config.setMaxLocations(jObject.optInt("maxLocations", config.getMaxLocations()));
@@ -461,6 +487,7 @@ public class Config implements Parcelable
         json.put("distanceFilterDevide", getDistanceFilterDevide());
         json.put("distanceFilterTimeout", getDistanceFilterTimeout());
         json.put("distanceFilterTimeoutMin", getDistanceFilterTimeoutMin());
+        json.put("distanceFilterTimeoutMinSpeed", getDistanceFilterTimeoutMinSpeed());
         json.put("distanceFilterTimeoutMultiplier", getDistanceFilterTimeoutMultiplier());
         json.put("desiredAccuracy", getDesiredAccuracy());
         json.put("debug", isDebugging());
@@ -479,6 +506,7 @@ public class Config implements Parcelable
         json.put("stopOnStillActivity", getStopOnStillActivity());
         json.put("url", getUrl());
         json.put("syncUrl", getSyncUrl());
+        json.put("enableSync", getEnableSync());
         json.put("syncThreshold", getSyncThreshold());
         json.put("httpHeaders", new JSONObject(getHttpHeaders()));
         json.put("maxLocations", getMaxLocations());

@@ -337,12 +337,14 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
             return;
         }
     	alarmManager.cancel(forceUpdateGps);
-        if(config.getDistanceFilterTimeout() && lastKnownSpeed > 1.5 && !isRequestingSingle) {
+        if(config.getDistanceFilterTimeout() && lastKnownSpeed > config.getDistanceFilterTimeoutMinSpeed() && !isRequestingSingle) {
         	long maxDuration = round(scaledDistanceFilter / lastKnownSpeed * config.getDistanceFilterTimeoutMultiplier()) * 1000;
         	if(maxDuration < config.getDistanceFilterTimeoutMin()) {
         		maxDuration = config.getDistanceFilterTimeoutMin();
         	}
-        	Toast.makeText(locationService, "Set timer: " +maxDuration + "ms", Toast.LENGTH_SHORT).show();
+            if (config.isDebugging()) {
+            	Toast.makeText(locationService, "Set timer: " +maxDuration + "ms", Toast.LENGTH_SHORT).show();
+            }
         	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + maxDuration, forceUpdateGps);
         }
         
@@ -469,18 +471,37 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
             lastKnownSpeed = location.getSpeed();
         	handleLocation(location);
         	
+        	//set new geofence
+        	setGeofence();
+        	
         	//re-set timer
         	alarmManager.cancel(forceUpdateGps);
-            if(config.getDistanceFilterTimeout() && lastKnownSpeed > 1.5 && !isRequestingSingle) {
+            if(config.getDistanceFilterTimeout() && lastKnownSpeed > config.getDistanceFilterTimeoutMinSpeed() && !isRequestingSingle) {
             	long maxDuration = round(scaledDistanceFilter / lastKnownSpeed * config.getDistanceFilterTimeoutMultiplier()) * 1000;
             	if(maxDuration < config.getDistanceFilterTimeoutMin()) {
             		maxDuration = config.getDistanceFilterTimeoutMin();
             	}
-            	Toast.makeText(locationService, "Set timer: " +maxDuration + "ms", Toast.LENGTH_SHORT).show();
+                if (config.isDebugging()) {
+                	Toast.makeText(locationService, "Set timer: " +maxDuration + "ms", Toast.LENGTH_SHORT).show();
+                }
             	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + maxDuration, forceUpdateGps);
             }
         }
     };
+    
+    private void setGeofence() {
+        try {
+            locationManager.removeUpdates(this);
+            criteria.setAccuracy(Criteria.ACCURACY_FINE);
+            criteria.setHorizontalAccuracy(translateDesiredAccuracy(config.getDesiredAccuracy()));
+            criteria.setPowerRequirement(Criteria.POWER_HIGH);
+
+            locationManager.requestLocationUpdates(locationManager.getBestProvider(criteria, true), config.getInterval(), scaledDistanceFilter, this); 
+        } catch (SecurityException e) {
+            log.error("Security exception: {}", e.getMessage());
+            this.handleSecurityException(e);
+        }
+    }
 
     /**
     * Broadcast receiver for receiving a single-update from LocationManager.
@@ -576,7 +597,9 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
     private void requestSingleUpdate() {
         alarmManager.cancel(forceUpdateGps);
         try {
-            Toast.makeText(locationService, "Request single Update", Toast.LENGTH_SHORT).show();
+            if (config.isDebugging()) {
+            	Toast.makeText(locationService, "Request single Update", Toast.LENGTH_SHORT).show();
+            }
 
             criteria.setAccuracy(Criteria.ACCURACY_FINE);
             criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);

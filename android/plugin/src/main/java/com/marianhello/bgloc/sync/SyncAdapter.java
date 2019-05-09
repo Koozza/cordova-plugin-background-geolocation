@@ -103,6 +103,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Uploadin
         }
 
         if (config == null) return;
+        
+        if (!config.getEnableSync()) return;
 
         log.debug("Sync request: {}", config.toString());
         if (config.hasUrl() || config.hasSyncUrl()) {

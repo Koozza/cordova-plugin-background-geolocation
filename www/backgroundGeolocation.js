@@ -20,6 +20,7 @@ var backgroundGeolocation = {
     provider: {
         ANDROID_DISTANCE_FILTER_PROVIDER: 0,
         ANDROID_ACTIVITY_PROVIDER: 1
+        ANDROID_DISTANCE_TIMED_FILTER_PROVIDER: 2,
     },
 
     mode: {
