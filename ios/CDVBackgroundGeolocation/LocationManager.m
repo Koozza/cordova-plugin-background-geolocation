@@ -54,6 +54,7 @@ enum {
     BOOL isAcquiringStationaryLocation;
     BOOL isAcquiringSpeed;
     BOOL hasConnectivity;
+    NSNumber lastUpdateAt;
 
     BGOperationMode operationMode;
     NSDate *aquireStartTime;
@@ -105,7 +106,6 @@ enum {
         hasConnectivity = NO;
     };
 
-
     if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"9.0")) {
         DDLogDebug(@"LocationManager iOS9 detected");
         locationManager.allowsBackgroundLocationUpdates = YES;
@@ -127,6 +127,7 @@ enum {
     hasConnectivity = YES;
     //    shouldStart = NO;
     stationaryRegion = nil;
+    lastUpdateAt = 0;
 
     return self;
 }
@@ -420,17 +421,20 @@ enum {
     if ([_config hasSyncUrl] || [_config hasUrl]) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
             if (hasConnectivity && [_config hasUrl]) {
-                NSError *error = nil;
-                if ([location postAsJSON:_config.url withHttpHeaders:_config.httpHeaders error:&error]) {
-                    SQLiteLocationDAO* locationDAO = [SQLiteLocationDAO sharedInstance];
-                    if (location.id != nil) {
-                        [locationDAO deleteLocation:location.id];
-                    }
-                } else {
-                    DDLogWarn(@"LocationManager postJSON failed: error: %@", error.userInfo[@"NSLocalizedDescription"]);
-                    hasConnectivity = [reach isReachable];
-                    [reach startNotifier];
-                }
+		if([lastUpdateAt intValue] < [[[NSNumber numberWithDouble:([time timeIntervalSince1970] * 1000)] - [_config fastestInterval]] intValue]) {
+		        NSError *error = nil;
+			lastUpdateAt = [NSNumber numberWithDouble:([time timeIntervalSince1970] * 1000)];
+		        if ([location postAsJSON:_config.url withHttpHeaders:_config.httpHeaders error:&error]) {
+		            SQLiteLocationDAO* locationDAO = [SQLiteLocationDAO sharedInstance];
+		            if (location.id != nil) {
+		                [locationDAO deleteLocation:location.id];
+		            }
+		        } else {
+		            DDLogWarn(@"LocationManager postJSON failed: error: %@", error.userInfo[@"NSLocalizedDescription"]);
+		            hasConnectivity = [reach isReachable];
+		            [reach startNotifier];
+		        }
+		}
             }
 
 	    if([_config isSyncEnabled]){

@@ -26,6 +26,7 @@
 @property BOOL saveBatteryOnBackground;
 @property NSInteger maxLocations;
 @property BOOL pauseLocationUpdates;
+@property NSInteger fastestInterval;
 
 + (instancetype) fromDictionary:(NSDictionary*)config;
 - (CLActivityType) decodeActivityType;

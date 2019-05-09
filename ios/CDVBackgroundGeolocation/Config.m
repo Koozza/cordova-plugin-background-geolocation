@@ -13,7 +13,7 @@
 
 @implementation Config
 
-@synthesize stationaryRadius, distanceFilter, desiredAccuracy, isDebugging, activityType, stopOnTerminate, url, syncUrl, enableSync, syncThreshold, httpHeaders, saveBatteryOnBackground, maxLocations, pauseLocationUpdates;
+@synthesize stationaryRadius, distanceFilter, desiredAccuracy, isDebugging, activityType, stopOnTerminate, url, syncUrl, enableSync, syncThreshold, httpHeaders, saveBatteryOnBackground, maxLocations, pauseLocationUpdates, fastestInterval;
 
 -(id) init {
     self = [super init];
@@ -33,6 +33,7 @@
     syncThreshold = 100;
     pauseLocationUpdates = YES;
     enableSync = YES;
+    fastestInterval = 5000;
 
     return self;
 }
@@ -69,6 +70,9 @@
     }
     if (isNotNull(config[@"enableSync"])) {
         instance.enableSync = [config[@"enableSync"] boolValue];
+    }
+    if (isNotNull(config[@"fastestInterval"])) {
+        instance.fastestInterval = [config[@"fastestInterval"] integerValue];
     }
     if (isNotNull(config[@"syncThreshold"])) {
         instance.syncThreshold = [config[@"syncThreshold"] integerValue];
