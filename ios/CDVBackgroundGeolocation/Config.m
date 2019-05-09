@@ -101,7 +101,7 @@
 
 - (BOOL) isSyncEnabled
 {
-    return enabledSync;
+    return enableSync;
 }
 
 - (CLActivityType) decodeActivityType

@@ -417,7 +417,7 @@ enum {
         return;
     }
 
-    if (([_config hasSyncUrl] || [_config hasUrl]) && [_config isSyncEnabled]) {
+    if ([_config hasSyncUrl] || [_config hasUrl]) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
             if (hasConnectivity && [_config hasUrl]) {
                 NSError *error = nil;
@@ -433,8 +433,10 @@ enum {
                 }
             }
 
-            NSString *syncUrl = [_config hasSyncUrl] ? _config.syncUrl : _config.url;
-            [uploader sync:syncUrl onLocationThreshold:_config.syncThreshold withHttpHeaders:_config.httpHeaders];
+	    if([_config isSyncEnabled]){
+                NSString *syncUrl = [_config hasSyncUrl] ? _config.syncUrl : _config.url;
+                [uploader sync:syncUrl onLocationThreshold:_config.syncThreshold withHttpHeaders:_config.httpHeaders];
+            }
         });
     }
 
