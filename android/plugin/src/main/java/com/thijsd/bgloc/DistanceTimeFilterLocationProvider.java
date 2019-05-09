@@ -465,7 +465,20 @@ public class DistanceTimeFilterLocationProvider extends AbstractLocationProvider
 
         	lastPost = System.currentTimeMillis();
         	lastLocation = location;
+            scaledDistanceFilter = calculateDistanceFilter(location.getSpeed());
+            lastKnownSpeed = location.getSpeed();
         	handleLocation(location);
+        	
+        	//re-set timer
+        	alarmManager.cancel(forceUpdateGps);
+            if(config.getDistanceFilterTimeout() && lastKnownSpeed > 1.5 && !isRequestingSingle) {
+            	long maxDuration = round(scaledDistanceFilter / lastKnownSpeed * config.getDistanceFilterTimeoutMultiplier()) * 1000;
+            	if(maxDuration < config.getDistanceFilterTimeoutMin()) {
+            		maxDuration = config.getDistanceFilterTimeoutMin();
+            	}
+            	Toast.makeText(locationService, "Set timer: " +maxDuration + "ms", Toast.LENGTH_SHORT).show();
+            	alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + maxDuration, forceUpdateGps);
+            }
         }
     };
 
