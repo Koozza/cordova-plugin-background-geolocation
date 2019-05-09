@@ -13,7 +13,7 @@
 
 @implementation Config
 
-@synthesize stationaryRadius, distanceFilter, desiredAccuracy, isDebugging, activityType, stopOnTerminate, url, syncUrl, syncThreshold, httpHeaders, saveBatteryOnBackground, maxLocations, pauseLocationUpdates;
+@synthesize stationaryRadius, distanceFilter, desiredAccuracy, isDebugging, activityType, stopOnTerminate, url, syncUrl, enableSync, syncThreshold, httpHeaders, saveBatteryOnBackground, maxLocations, pauseLocationUpdates;
 
 -(id) init {
     self = [super init];
@@ -32,6 +32,7 @@
     maxLocations = 10000;
     syncThreshold = 100;
     pauseLocationUpdates = YES;
+    enableSync = YES;
 
     return self;
 }
@@ -66,6 +67,9 @@
     } else if (isNull(config[@"url"])) {
         instance.syncUrl = config[@"url"];
     }
+    if (isNotNull(config[@"enableSync"])) {
+        instance.enableSync = [config[@"enableSync"] boolValue];
+    }
     if (isNotNull(config[@"syncThreshold"])) {
         instance.syncThreshold = [config[@"syncThreshold"] integerValue];
     }
@@ -93,6 +97,11 @@
 - (BOOL) hasSyncUrl
 {
     return (syncUrl != nil && syncUrl.length > 0);
+}
+
+- (BOOL) isSyncEnabled
+{
+    return enabledSync;
 }
 
 - (CLActivityType) decodeActivityType

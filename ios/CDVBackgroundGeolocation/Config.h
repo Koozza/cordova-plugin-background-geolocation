@@ -20,6 +20,7 @@
 @property BOOL stopOnTerminate;
 @property NSString* url;
 @property NSString* syncUrl;
+@property BOOL enableSync;
 @property NSInteger syncThreshold;
 @property NSMutableDictionary* httpHeaders;
 @property BOOL saveBatteryOnBackground;
@@ -31,6 +32,7 @@
 - (NSInteger) decodeDesiredAccuracy;
 - (BOOL) hasUrl;
 - (BOOL) hasSyncUrl;
+- (BOOL) isSyncEnabled;
 
 @end;
 

@@ -163,7 +163,7 @@ enum {
         }
     }
 
-    if ([config hasSyncUrl] && uploader == nil) {
+    if ([config hasSyncUrl] && [config isSyncEnabled] && uploader == nil) {
         uploader = [[LocationUploader alloc] init];
     }
 
@@ -417,7 +417,7 @@ enum {
         return;
     }
 
-    if ([_config hasSyncUrl] || [_config hasUrl]) {
+    if (([_config hasSyncUrl] || [_config hasUrl]) && [_config isSyncEnabled]) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
             if (hasConnectivity && [_config hasUrl]) {
                 NSError *error = nil;
