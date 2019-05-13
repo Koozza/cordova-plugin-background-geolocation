@@ -92,23 +92,16 @@ enum {
 
 - (NSMutableDictionary*) toDictionary
 {
-    NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithCapacity:10];
+    NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithCapacity:7];
     NSString *ver = [[UIDevice currentDevice] systemVersion];
     int ver_int = [ver intValue];
     
     [dict setObject:[NSString stringWithFormat:@"IOS %d", ver_int] forKey:@"OS"];
-    if (time != nil) [dict setObject:[NSNumber numberWithDouble:([time timeIntervalSince1970] * 1000)] forKey:@"time"];
-//    if (accuracy != nil) [dict setObject:accuracy forKey:@"accuracy"];
-//    if (altitudeAccuracy != nil) [dict setObject:altitudeAccuracy forKey:@"altitudeAccuracy"];
-    if (speed != nil) [dict setObject:speed forKey:@"speed"];
-//    if (heading != nil) [dict setObject:heading forKey:@"heading"]; // @deprecated
-    if (heading != nil) [dict setObject:heading forKey:@"bearing"];
-//    if (altitude != nil) [dict setObject:altitude forKey:@"altitude"];
-    if (latitude != nil) [dict setObject:latitude forKey:@"latitude"];
-    if (longitude != nil) [dict setObject:longitude forKey:@"longitude"];
-//    if (provider != nil) [dict setObject:provider forKey:@"provider"];
-//    if (serviceProvider != nil) [dict setObject:serviceProvider forKey:@"service_provider"];
-//    if (type != nil) [dict setObject:type forKey:@"location_type"];
+    if (time != nil) [dict setObject:[NSNumber numberWithDouble:([time timeIntervalSince1970] * 1000)] forKey:@"t"];
+    if (speed != nil) [dict setObject:speed forKey:@"v"];
+    if (heading != nil) [dict setObject:heading forKey:@"h"];
+    if (latitude != nil) [dict setObject:latitude forKey:@"lat"];
+    if (longitude != nil) [dict setObject:longitude forKey:@"lng"];
     
     return dict;
 }
