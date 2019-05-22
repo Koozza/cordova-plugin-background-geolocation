@@ -313,7 +313,7 @@ enum {
 
 - (void) showLocationSettings
 {
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"prefs:root=LOCATION_SERVICES"]];
+	//Can't do this anymore.
 }
 
 - (NSMutableDictionary*) getStationaryLocation
